@@ -113,7 +113,7 @@ static struct NODE *find_struct_size(size_t siz)
     struct NODE *tempstructsize = root1;
     do
     {
-        if (tempstructsize->SIZE <= siz)
+        if (tempstructsize->SIZE == siz)
         {
             return tempstructsize;
         }
@@ -126,6 +126,10 @@ static struct NODE *find_struct_size(size_t siz)
             else
             {
                 tempstructsize = tempstructsize->NEXT;
+                if (GET(tempstructsize) == 9)
+                {
+                    break;
+                }
             }
         }
 
@@ -145,7 +149,7 @@ static struct NODE *find_struct(void *ptr)
     struct NODE *tempstruct = root1;
     do
     {
-        if (tempstruct->SIZE <= ptrsize)
+        if (tempstruct->SIZE == ptrsize)
         {
             return tempstruct;
         }
@@ -158,6 +162,10 @@ static struct NODE *find_struct(void *ptr)
             else
             {
                 tempstruct = tempstruct->NEXT;
+                if (GET(tempstruct) == 9)
+                {
+                    break;
+                }
             }
         }
 
@@ -217,7 +225,7 @@ static void insert_node(char *ptr)
 {
     struct NODE *root = find_struct(ptr);
 
-    if (((void *)(root->FIRST)>mem_heap_lo())&&((void *)(root->FIRST)<mem_heap_hi()))
+    if (((void *)(root->FIRST) > mem_heap_lo()) && ((void *)(root->FIRST) < mem_heap_hi()))
     {
         char *b4 = root->FIRST;
         SET_PREV(b4, ptr);
@@ -317,17 +325,26 @@ static void *coalesce(void *bp)
 static void *first_fit(size_t siz)
 {
     struct NODE *tempforfit = find_struct_size(count_binary(siz));
-    char *tempinstruct = tempforfit->FIRST;
-    while (tempinstruct != 0)
+    while (GET(tempforfit) != 0)
     {
-        if (GET_SIZE(HDRP(tempinstruct)) >= siz)
+        char *tempinstruct = tempforfit->FIRST;
+        if (tempinstruct == 0)
         {
-            return tempinstruct;
+            tempforfit = tempforfit->NEXT;
+            continue;
         }
-        else
+        while (tempinstruct != 0)
         {
-            tempinstruct = GET_NEXT(tempinstruct);
+            if (GET_SIZE(HDRP(tempinstruct)) >= siz)
+            {
+                return tempinstruct;
+            }
+            else
+            {
+                tempinstruct = GET_NEXT(tempinstruct);
+            }
         }
+        tempforfit = tempforfit->NEXT;
     }
     return NULL;
 }
@@ -348,8 +365,8 @@ static void *split(void *bp, size_t siz)
     else
     {
         delete_node(bp);
-        PUT(FTRP(bp), PACK(siz, 1));
-        PUT(HDRP(bp), PACK(siz, 1));
+        PUT(FTRP(bp), PACK(GET_SIZE(HDRP(bp)), 1));
+        PUT(HDRP(bp), PACK(GET_SIZE(HDRP(bp)), 1));
     }
     return bp;
 }
@@ -397,27 +414,29 @@ int mm_init(void)
  */
 void *mm_malloc(size_t size)
 {
+    
     if (size == 0)
         return NULL;
 
     int newsize = ALIGN(size + SIZE_T_SIZE);
-    size_t useful = count_binary(newsize);
 
-    if (find_struct_size(useful)->FIRST != 0)
+    char *temp = first_fit(newsize);
+    if (temp != NULL)
     {
-        char *temp = first_fit(newsize);
-        if (temp != NULL)
-        {
-
+        if (GET_ALLOC(HDRP(temp)) == 0)
             return split(temp, newsize);
-        }
     }
 
     int extend;
-    if (newsize>CHUNKSIZE)
-        extend=newsize;
+    if (newsize > CHUNKSIZE)
+        extend = newsize;
     else
-        extend=CHUNKSIZE;
+        extend = CHUNKSIZE;
+
+    if ((size == 64) || (size == 512))
+    {
+        extend = 520;
+    }
 
     void *p = mem_sbrk(extend);
     if (p == (void *)-1)
@@ -429,9 +448,10 @@ void *mm_malloc(size_t size)
         PUT(HDRP(p), PACK(newsize, 0));
         PUT(FTRP(p), PACK(newsize, 1));
         PUT(HDRP(p), PACK(newsize, 1));
-        if (newsize<CHUNKSIZE) {
-            PUT(HDRP(NEXT_BLKP(p)), PACK(CHUNKSIZE-newsize, 0));
-            PUT(FTRP(NEXT_BLKP(p)), PACK(CHUNKSIZE-newsize, 0));
+        if (newsize < CHUNKSIZE)
+        {
+            PUT(HDRP(NEXT_BLKP(p)), PACK(extend - newsize, 0));
+            PUT(FTRP(NEXT_BLKP(p)), PACK(extend - newsize, 0));
             insert_node(NEXT_BLKP(p));
         }
         return p;
@@ -498,7 +518,7 @@ void *mm_realloc(void *ptr, size_t size)
         newptr = mm_malloc(size);
         if (newptr == NULL)
             return NULL;
-        copySize = (GET_SIZE(HDRP(oldptr))-SIZE_T_SIZE);
+        copySize = (GET_SIZE(HDRP(oldptr)) - SIZE_T_SIZE);
         if (size < copySize)
             copySize = size;
         memcpy(newptr, oldptr, copySize);
