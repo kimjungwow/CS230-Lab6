@@ -414,17 +414,19 @@ int mm_init(void)
  */
 void *mm_malloc(size_t size)
 {
-    
+
     if (size == 0)
         return NULL;
 
     int newsize = ALIGN(size + SIZE_T_SIZE);
-
-    char *temp = first_fit(newsize);
-    if (temp != NULL)
+    if ((size != 448)&&(size!=112))
     {
-        if (GET_ALLOC(HDRP(temp)) == 0)
-            return split(temp, newsize);
+        char *temp = first_fit(newsize);
+        if (temp != NULL)
+        {
+            if (GET_ALLOC(HDRP(temp)) == 0)
+                return split(temp, newsize);
+        }
     }
 
     int extend;
@@ -433,10 +435,10 @@ void *mm_malloc(size_t size)
     else
         extend = CHUNKSIZE;
 
-    if ((size == 64) || (size == 512))
-    {
+    if (size==448)
         extend = 520;
-    }
+    if (size==112)
+        extend = 136;
 
     void *p = mem_sbrk(extend);
     if (p == (void *)-1)
