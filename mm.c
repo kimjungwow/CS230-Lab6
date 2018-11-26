@@ -440,17 +440,17 @@ void *mm_malloc(size_t size)
     if (size==112)
         extend = 136;
 
+
     void *p = mem_sbrk(extend);
     if (p == (void *)-1)
         return NULL;
     else
     {
         memset(p, 0, extend);
-
         PUT(HDRP(p), PACK(newsize, 0));
         PUT(FTRP(p), PACK(newsize, 1));
         PUT(HDRP(p), PACK(newsize, 1));
-        if (newsize < CHUNKSIZE)
+        if (newsize < extend)
         {
             PUT(HDRP(NEXT_BLKP(p)), PACK(extend - newsize, 0));
             PUT(FTRP(NEXT_BLKP(p)), PACK(extend - newsize, 0));
@@ -516,6 +516,17 @@ void *mm_realloc(void *ptr, size_t size)
         void *oldptr = ptr;
         void *newptr;
         size_t copySize;
+        
+
+        if ((void *)(NEXT_BLKP(ptr))>mem_heap_hi()) {
+            diff = newsize - evendown(GET_SIZE(HDRP(ptr)));
+            mem_sbrk(diff);
+            PUT(HDRP(ptr),PACK(newsize,0));
+            PUT(FTRP(ptr),PACK(newsize,1));
+            PUT(HDRP(ptr),PACK(newsize,1));
+            return ptr;
+        }
+
 
         newptr = mm_malloc(size);
         if (newptr == NULL)
