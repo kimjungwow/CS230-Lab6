@@ -243,7 +243,7 @@ static void *extend_heap(size_t words)
     size *= WSIZE;
     if ((long)(bp = mem_sbrk(size)) == -1)
         return NULL;
-
+    memset(bp, 0, size);
     PUT(HDRP(bp), PACK(size, 0));
     PUT(FTRP(bp), PACK(size, 0));
     PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1));
@@ -424,6 +424,7 @@ void *mm_malloc(size_t size)
         return NULL;
     else
     {
+        memset(p, 0, extend);
 
         PUT(HDRP(p), PACK(newsize, 0));
         PUT(FTRP(p), PACK(newsize, 1));
@@ -498,7 +499,6 @@ void *mm_realloc(void *ptr, size_t size)
         if (newptr == NULL)
             return NULL;
         copySize = (GET_SIZE(HDRP(oldptr))-SIZE_T_SIZE);
-        // copySize = *(size_t *)((char *)oldptr - SIZE_T_SIZE);
         if (size < copySize)
             copySize = size;
         memcpy(newptr, oldptr, copySize);
