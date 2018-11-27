@@ -82,7 +82,6 @@ struct NODE *root1;
 static char *root;
 static struct NODE *rootend;
 
-
 size_t count_binary(size_t given);
 static struct NODE *find_struct_size(size_t siz);
 static struct NODE *find_struct(void *ptr);
@@ -114,22 +113,16 @@ static struct NODE *find_struct_size(size_t siz)
     do
     {
         if (tempstructsize->SIZE == siz)
-        {
             return tempstructsize;
-        }
         else
         {
             if (tempstructsize->NEXT == 0)
-            {
                 break;
-            }
             else
             {
                 tempstructsize = tempstructsize->NEXT;
                 if (GET(tempstructsize) == 9)
-                {
                     break;
-                }
             }
         }
 
@@ -150,22 +143,16 @@ static struct NODE *find_struct(void *ptr)
     do
     {
         if (tempstruct->SIZE == ptrsize)
-        {
             return tempstruct;
-        }
         else
         {
             if (tempstruct->NEXT == 0)
-            {
                 break;
-            }
             else
             {
                 tempstruct = tempstruct->NEXT;
                 if (GET(tempstruct) == 9)
-                {
                     break;
-                }
             }
         }
 
@@ -189,9 +176,7 @@ static void delete_node(char *ptr)
                     SET_PREV(GET_NEXT(ptr), NULL);
                 }
                 else
-                {
                     root->FIRST = NULL;
-                }
             }
             else
             {
@@ -201,9 +186,7 @@ static void delete_node(char *ptr)
                     SET_NEXT(GET_PREV(ptr), GET_NEXT(ptr));
                 }
                 else
-                {
                     SET_NEXT(GET_PREV(ptr), NULL);
-                }
             }
             SET_PREV(ptr, NULL);
             SET_NEXT(ptr, NULL);
@@ -212,9 +195,7 @@ static void delete_node(char *ptr)
         else
         {
             if ((delete_temp < (char *)(mem_heap_lo())) || (delete_temp > (char *)(mem_heap_hi())))
-            {
                 return;
-            }
             delete_temp = GET_NEXT(delete_temp);
         }
     }
@@ -282,28 +263,22 @@ static void *coalesce(void *bp)
     else if (prev_alloc && !next_alloc)
     {
         if ((void *)(NEXT_BLKP(bp)) > mem_heap_hi())
-        {
             return bp;
-        }
         size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
         size = evendown(size);
         delete_node(bp);
         delete_node(NEXT_BLKP(bp));
-
         PUT(HDRP(bp), PACK(size, 0));
         PUT(FTRP(bp), PACK(size, 0));
     }
     else if (!prev_alloc && next_alloc)
     {
-
         size += GET_SIZE(FTRP(PREV_BLKP(bp)));
         size = evendown(size);
-
         delete_node(PREV_BLKP(bp));
         delete_node(bp);
         PUT(FTRP(bp), PACK(size, 0));
         PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
-
         bp = PREV_BLKP(bp);
     }
     else
@@ -313,7 +288,6 @@ static void *coalesce(void *bp)
         delete_node(PREV_BLKP(bp));
         delete_node(bp);
         delete_node(NEXT_BLKP(bp));
-
         PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
         PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));
         bp = PREV_BLKP(bp);
@@ -336,13 +310,9 @@ static void *first_fit(size_t siz)
         while (tempinstruct != 0)
         {
             if (GET_SIZE(HDRP(tempinstruct)) >= siz)
-            {
                 return tempinstruct;
-            }
             else
-            {
                 tempinstruct = GET_NEXT(tempinstruct);
-            }
         }
         tempforfit = tempforfit->NEXT;
     }
@@ -402,8 +372,8 @@ int mm_init(void)
     PUT(root + (3 * WSIZE), PACK(0, 1));
     root += (4 * WSIZE);
 
-    // if (extend_heap(8208) == NULL)
-    if (extend_heap(CHUNKSIZE) == NULL)
+    if (extend_heap(2052) == NULL)
+    // if (extend_heap(CHUNKSIZE) == NULL)
         return -1;
 
     return 0;
@@ -420,7 +390,7 @@ void *mm_malloc(size_t size)
         return NULL;
 
     int newsize = ALIGN(size + SIZE_T_SIZE);
-    if ((size != 448)&&(size!=112))
+    if ((size != 448) && (size != 112))
     {
         char *temp = first_fit(newsize);
         if (temp != NULL)
@@ -432,15 +402,15 @@ void *mm_malloc(size_t size)
 
     int extend;
     if (newsize > CHUNKSIZE)
-        extend = newsize;
+        extend = newsize;  
     else
         extend = CHUNKSIZE;
 
-    if (size==448)
+    if (size == 448)
         extend = 520;
-    if (size==112)
+    if (size == 112)
         extend = 136;
-    if (size==4095)
+    if (size == 4095)
         extend = 8208;
 
     void *p = mem_sbrk(extend);
@@ -449,13 +419,14 @@ void *mm_malloc(size_t size)
     else
     {
         memset(p, 0, extend);
-        if ((size==448)||(size==112)) {
+        if ((size == 448) || (size == 112))
+        {
             PUT(HDRP(p), PACK(extend, 0));
-        PUT(FTRP(p), PACK(extend, 1));
-        PUT(HDRP(p), PACK(extend, 1));
-        return p;
+            PUT(FTRP(p), PACK(extend, 1));
+            PUT(HDRP(p), PACK(extend, 1));
+            return p;
         }
-        
+
         PUT(HDRP(p), PACK(newsize, 0));
         PUT(FTRP(p), PACK(newsize, 1));
         PUT(HDRP(p), PACK(newsize, 1));
@@ -525,17 +496,16 @@ void *mm_realloc(void *ptr, size_t size)
         void *oldptr = ptr;
         void *newptr;
         size_t copySize;
-        
 
-        if ((void *)(NEXT_BLKP(ptr))>mem_heap_hi()) {
+        if ((void *)(NEXT_BLKP(ptr)) > mem_heap_hi())
+        {
             diff = newsize - evendown(GET_SIZE(HDRP(ptr)));
             mem_sbrk(diff);
-            PUT(HDRP(ptr),PACK(newsize,0));
-            PUT(FTRP(ptr),PACK(newsize,1));
-            PUT(HDRP(ptr),PACK(newsize,1));
+            PUT(HDRP(ptr), PACK(newsize, 0));
+            PUT(FTRP(ptr), PACK(newsize, 1));
+            PUT(HDRP(ptr), PACK(newsize, 1));
             return ptr;
         }
-
 
         newptr = mm_malloc(size);
         if (newptr == NULL)
