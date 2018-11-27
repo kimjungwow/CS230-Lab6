@@ -112,8 +112,10 @@ size_t count_binary(size_t given)
 static struct NODE *find_struct_size(size_t siz)
 {
     struct NODE *tempstructsize = root1;
+    int checknine=4;
     do
     {
+        checknine+=1;
         if (tempstructsize->SIZE >= siz)
             return tempstructsize;
         else
@@ -123,8 +125,8 @@ static struct NODE *find_struct_size(size_t siz)
             else
             {
                 tempstructsize = tempstructsize->NEXT;
-                if (GET(tempstructsize) == 9)
-                    break;
+                if (checknine==15) 
+                    return rootend;                
             }
         }
 
@@ -136,7 +138,7 @@ static struct NODE *find_struct(void *ptr)
 {
     size_t checksize = evendown(GET_SIZE(HDRP(ptr)));
     size_t ptrsize = 0;
-    int ninecheck=4;
+    int ninecheck=5;
     while (checksize > 0)
     {
         checksize = checksize >> 1;
@@ -145,7 +147,7 @@ static struct NODE *find_struct(void *ptr)
     struct NODE *tempstruct = root1;
     do
     {
-        ninecheck++;
+        ninecheck+=1;
         if (tempstruct->SIZE >= ptrsize)
             return tempstruct;
         else
@@ -155,10 +157,8 @@ static struct NODE *find_struct(void *ptr)
             else
             {
                 tempstruct = tempstruct->NEXT;
-                if (GET(tempstruct) == 9)
-                // if ((GET(tempstruct) == 9)&& (ninecheck>14))
-                
-                    break;
+                if (ninecheck==15) 
+                    return rootend;
             }
         }
 
