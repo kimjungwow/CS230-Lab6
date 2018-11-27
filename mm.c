@@ -65,6 +65,7 @@
 
 /*/ single word (4) or double word (8) alignment */
 #define ALIGNMENT 8
+#define LISTSIZE 120
 
 /* rounds up to the nearest multiple of ALIGNMENT */
 #define ALIGN(size) (((size) + (ALIGNMENT - 1)) & ~0x7)
@@ -81,6 +82,7 @@ struct NODE
 struct NODE *root1;
 static char *root;
 static struct NODE *rootend;
+static struct NODE *root9;
 
 size_t count_binary(size_t given);
 static struct NODE *find_struct_size(size_t siz);
@@ -112,7 +114,7 @@ static struct NODE *find_struct_size(size_t siz)
     struct NODE *tempstructsize = root1;
     do
     {
-        if (tempstructsize->SIZE == siz)
+        if (tempstructsize->SIZE >= siz)
             return tempstructsize;
         else
         {
@@ -134,6 +136,7 @@ static struct NODE *find_struct(void *ptr)
 {
     size_t checksize = evendown(GET_SIZE(HDRP(ptr)));
     size_t ptrsize = 0;
+    int ninecheck=4;
     while (checksize > 0)
     {
         checksize = checksize >> 1;
@@ -142,7 +145,8 @@ static struct NODE *find_struct(void *ptr)
     struct NODE *tempstruct = root1;
     do
     {
-        if (tempstruct->SIZE == ptrsize)
+        ninecheck++;
+        if (tempstruct->SIZE >= ptrsize)
             return tempstruct;
         else
         {
@@ -152,6 +156,8 @@ static struct NODE *find_struct(void *ptr)
             {
                 tempstruct = tempstruct->NEXT;
                 if (GET(tempstruct) == 9)
+                // if ((GET(tempstruct) == 9)&& (ninecheck>14))
+                
                     break;
             }
         }
@@ -347,9 +353,9 @@ static void *split(void *bp, size_t siz)
 int mm_init(void)
 {
 
-    if ((root1 = mem_sbrk(120)) == (void *)-1)
+    if ((root1 = mem_sbrk(LISTSIZE)) == (void *)-1)
         return -1;
-    memset(root1, 0, 120);
+    memset(root1, 0, LISTSIZE);
 
     struct NODE *initroot = root1;
     int i;
@@ -358,6 +364,8 @@ int mm_init(void)
         initroot->SIZE = 5 + i;
         initroot->NEXT = initroot + 1;
         initroot->FIRST = NULL;
+        if (i==4)
+            root9=initroot;
         initroot++;
     }
     rootend = initroot - 1;
@@ -373,7 +381,6 @@ int mm_init(void)
     root += (4 * WSIZE);
 
     if (extend_heap(2052) == NULL)
-    // if (extend_heap(CHUNKSIZE) == NULL)
         return -1;
 
     return 0;
@@ -412,7 +419,7 @@ void *mm_malloc(size_t size)
         extend = 136;
     if (size == 4095)
         extend = 8208;
-
+    
     void *p = mem_sbrk(extend);
     if (p == (void *)-1)
         return NULL;
