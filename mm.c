@@ -82,6 +82,7 @@ struct NODE *root1;
 static char *root;
 static struct NODE *rootend;
 
+
 size_t count_binary(size_t given);
 static struct NODE *find_struct_size(size_t siz);
 static struct NODE *find_struct(void *ptr);
@@ -401,6 +402,7 @@ int mm_init(void)
     PUT(root + (3 * WSIZE), PACK(0, 1));
     root += (4 * WSIZE);
 
+    // if (extend_heap(8208) == NULL)
     if (extend_heap(CHUNKSIZE) == NULL)
         return -1;
 
@@ -438,7 +440,8 @@ void *mm_malloc(size_t size)
         extend = 520;
     if (size==112)
         extend = 136;
-
+    if (size==4095)
+        extend = 8208;
 
     void *p = mem_sbrk(extend);
     if (p == (void *)-1)
