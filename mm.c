@@ -85,7 +85,7 @@ static char *root;
 static struct NODE *rootend;
 
 static int specialcase = 0;
-static int realloc2check = 0;
+
 static int check4092 = 0;
 size_t count_binary(size_t given);
 static struct NODE *find_struct_size(size_t siz);
@@ -380,11 +380,7 @@ void *mm_malloc(size_t size)
         if (temp != NULL)
         {
             if (GET_ALLOC(HDRP(temp)) == 0)
-            {
-                if (size == 4092)
-                    realloc2check = 1;
                 return split(temp, newsize);
-            }
         }
     }
 
@@ -482,7 +478,6 @@ void *mm_realloc(void *ptr, size_t size)
         return NULL;
     }
     int newsize = ALIGN(size + SIZE_T_SIZE);
-    size_t currentsize = evendown(GET_SIZE(HDRP(ptr)));
 
     size_t diff;
     if (evendown(GET_SIZE(HDRP(ptr))) >= newsize)
@@ -524,7 +519,7 @@ void *mm_realloc(void *ptr, size_t size)
         if (GET_ALLOC(HDRP(NEXT_BLKP(ptr))) == 0)
         {
 
-            size_t addnextblocksize = currentsize + GET_SIZE(HDRP(NEXT_BLKP(ptr)));
+            size_t addnextblocksize = evendown(GET_SIZE(HDRP(ptr))) + GET_SIZE(HDRP(NEXT_BLKP(ptr)));
             if (addnextblocksize >= newsize)
             {
                 PUT(FTRP(ptr), PACK(0, 0));
