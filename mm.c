@@ -65,6 +65,7 @@
 
 /*/ single word (4) or double word (8) alignment */
 #define ALIGNMENT 8
+
 #define LISTSIZE 120
 
 /* rounds up to the nearest multiple of ALIGNMENT */
@@ -83,7 +84,7 @@ struct NODE *root1;
 static char *root;
 static struct NODE *rootend;
 
-static int realloc2check=0;
+static int realloc2check = 0;
 
 size_t count_binary(size_t given);
 static struct NODE *find_struct_size(size_t siz);
@@ -112,54 +113,52 @@ size_t count_binary(size_t given)
 
 static struct NODE *find_struct_size(size_t siz)
 {
-    struct NODE *tempstructsize = root1;
-    int checknine = 4;
-    do
-    {
-        checknine += 1;
-        if (tempstructsize->SIZE >= siz)
-            return tempstructsize;
-        else
-        {
-            tempstructsize = tempstructsize->NEXT;
-            if (checknine == 15)
-                return rootend;
-        }
 
-    } while (tempstructsize != 0);
-    return rootend;
+    if (siz <= 5)
+    {
+        return root1;
+    }
+    else if (siz >= 14)
+    {
+        return rootend;
+    }
+    else
+    {
+        size_t five;
+        struct NODE *tempstruct = root1;
+        for (five = 5; five < siz; five++)
+        {
+            tempstruct += 1;
+        }
+        return tempstruct;
+    }
+
 }
 
 static struct NODE *find_struct(void *ptr)
 {
-    size_t checksize = evendown(GET_SIZE(HDRP(ptr)));
-    size_t ptrsize = 0;
-    int ninecheck = 5;
-    while (checksize > 0)
-    {
-        checksize = checksize >> 1;
-        ptrsize += 1;
-    }
-    struct NODE *tempstruct = root1;
-    do
-    {
-        ninecheck += 1;
-        if (tempstruct->SIZE >= ptrsize)
-            return tempstruct;
-        else
-        {
-            if (tempstruct->NEXT == 0)
-                break;
-            else
-            {
-                tempstruct = tempstruct->NEXT;
-                if (ninecheck == 15)
-                    return rootend;
-            }
-        }
 
-    } while (tempstruct != 0);
-    return rootend;
+    size_t checksize = evendown(GET_SIZE(HDRP(ptr)));
+    size_t ptrsize = count_binary(checksize);
+
+    if (ptrsize <= 5)
+    {
+        return root1;
+    }
+    else if (ptrsize >= 14)
+    {
+        return rootend;
+    }
+    else
+    {
+        size_t five;
+        struct NODE *tempstruct = root1;
+        for (five = 5; five < ptrsize; five++)
+        {
+            tempstruct += 1;
+        }
+        return tempstruct;
+    }
 }
 
 static void delete_node(char *ptr)
@@ -207,10 +206,10 @@ static void delete_node(char *ptr)
 static void insert_node(char *ptr)
 {
     struct NODE *root = find_struct(ptr);
-
-    if (((void *)(root->FIRST) > mem_heap_lo()) && ((void *)(root->FIRST) < mem_heap_hi()))
+    void *b4 = root->FIRST;
+    if ((b4 > mem_heap_lo()) && (b4 < mem_heap_hi()))
+    
     {
-        char *b4 = root->FIRST;
         SET_PREV(b4, ptr);
         SET_NEXT(ptr, b4);
         SET_PREV(ptr, NULL);
@@ -357,9 +356,10 @@ int mm_init(void)
     int i;
     for (i = 0; i < 10; i++)
     {
+        
         initroot->SIZE = 5 + i;
         initroot->NEXT = initroot + 1;
-        initroot->FIRST = NULL;
+        // initroot->FIRST = NULL;
         initroot++;
     }
     rootend = initroot - 1;
@@ -389,9 +389,11 @@ void *mm_malloc(size_t size)
 
     if (size == 0)
         return NULL;
-    // printf(" malloc %p  and size %X\n",mem_heap_hi(), size);
-    if (realloc2check==1) {
-        if (size==16) {
+
+    if (realloc2check == 1)
+    {
+        if (size == 16)
+        {
             void *q = mem_sbrk(19968);
             PUT(HDRP(q), PACK(19968, 0));
             PUT(FTRP(q), PACK(19968, 0));
@@ -401,33 +403,34 @@ void *mm_malloc(size_t size)
             PUT(HDRP(q), PACK(24, 0));
             PUT(FTRP(q), PACK(24, 1));
             PUT(HDRP(q), PACK(24, 1));
-            realloc2check=2;
-            
-            return q;
-            
-        } else {
-            realloc2check=0;
-        }
+            realloc2check = 2;
 
+            return q;
+        }
+        else
+        {
+            realloc2check = 0;
+        }
     }
-    
-    
-    
+
     int newsize = ALIGN(size + SIZE_T_SIZE);
-    if ((size != 448) && (size != 112))// && (size != 4092))
+    if ((size != 448) && (size != 112))
     {
         char *temp = first_fit(newsize);
         if (temp != NULL)
         {
-            if (GET_ALLOC(HDRP(temp)) == 0) {
-                if (size==4092) {realloc2check=1;}
-                return split(temp, newsize);
+            if (GET_ALLOC(HDRP(temp)) == 0)
+            {
+                if (size == 4092)
+                {
+                    realloc2check = 1;
                 }
+                return split(temp, newsize);
+            }
         }
     }
 
     int extend;
-
 
     if (size == 448)
         extend = 520;
@@ -435,26 +438,24 @@ void *mm_malloc(size_t size)
         extend = 136;
     else if (size == 4095)
         extend = 8208;
-    //  else if (size == 4092)
-    //  {extend = 28096; realloc2=1; realloc2check=1;}
     else if (newsize > CHUNKSIZE)
         extend = newsize;
     else
         extend = CHUNKSIZE;
-    
+
     void *p = mem_sbrk(extend);
     if (p == (void *)-1)
         return NULL;
     else
     {
         memset(p, 0, extend);
-        if ((size == 448) || (size == 112)  || (size==4092))
+        if ((size == 448) || (size == 112) || (size == 4092))
         {
             PUT(HDRP(p), PACK(extend, 0));
             PUT(FTRP(p), PACK(extend, 1));
             PUT(HDRP(p), PACK(extend, 1));
             return p;
-        } 
+        }
 
         PUT(HDRP(p), PACK(newsize, 0));
         PUT(FTRP(p), PACK(newsize, 1));
@@ -478,12 +479,9 @@ void mm_free(void *ptr)
 
     PUT(HDRP(ptr), PACK(size, 0));
     PUT(FTRP(ptr), PACK(size, 0));
-    SET_NEXT(ptr, NULL);
-    SET_PREV(ptr, NULL);
     insert_node(ptr);
-    if (GET_SIZE(HDRP(ptr))!=0x18)
+    if (GET_SIZE(HDRP(ptr)) != 0x18)
         coalesce(ptr);
-
     return;
 }
 
@@ -492,7 +490,7 @@ void mm_free(void *ptr)
  */
 void *mm_realloc(void *ptr, size_t size)
 {
-    // printf("%p NOW, %p MAX and size %X\n",ptr, mem_heap_hi(), size);
+
     if (ptr == NULL)
         return mm_malloc(size);
     if (size == 0)
@@ -502,33 +500,28 @@ void *mm_realloc(void *ptr, size_t size)
     }
     int newsize = ALIGN(size + SIZE_T_SIZE);
     size_t currentsize = evendown(GET_SIZE(HDRP(ptr)));
-    if ((size==4097)&&(realloc2check==2))
+    if ((size == 4097) && (realloc2check == 2))
     {
-        size_t addnextblocksize = currentsize+GET_SIZE(HDRP(NEXT_BLKP(ptr)));
-            if (addnextblocksize >=newsize) {
-                PUT(FTRP(ptr), PACK(0, 0));
-                delete_node(NEXT_BLKP(ptr));
-                PUT(HDRP(ptr), PACK(addnextblocksize, 0));
-                PUT(FTRP(ptr), PACK(addnextblocksize, 1));
-                PUT(HDRP(ptr), PACK(addnextblocksize, 1));
-                return ptr;
-
-
-
-            }
+        size_t addnextblocksize = currentsize + GET_SIZE(HDRP(NEXT_BLKP(ptr)));
+        if (addnextblocksize >= newsize)
+        {
+            PUT(FTRP(ptr), PACK(0, 0));
+            delete_node(NEXT_BLKP(ptr));
+            PUT(HDRP(ptr), PACK(addnextblocksize, 0));
+            PUT(FTRP(ptr), PACK(addnextblocksize, 1));
+            PUT(HDRP(ptr), PACK(addnextblocksize, 1));
+            return ptr;
+        }
     }
 
-
-    
-    
     size_t diff;
     if (evendown(GET_SIZE(HDRP(ptr))) >= newsize)
     {
-        
+
         diff = evendown(GET_SIZE(HDRP(ptr))) - newsize;
-        if ((diff > ALIGNMENT)&&(realloc2check<=1))
+        if ((diff > ALIGNMENT) && (realloc2check <= 1))
         {
-        
+
             delete_node(ptr);
             PUT(HDRP(ptr), PACK(newsize, 0));
             PUT(FTRP(ptr), PACK(newsize, 1));
@@ -545,14 +538,13 @@ void *mm_realloc(void *ptr, size_t size)
     }
     else
     {
-        // printf("i HAVE %x and I need %x\n",evendown(GET_SIZE(HDRP(ptr))), newsize);
+
         void *oldptr = ptr;
         void *newptr;
         size_t copySize;
-        
+
         if ((void *)(NEXT_BLKP(ptr)) > mem_heap_hi())
         {
-            // printf("1\n");
             diff = newsize - evendown(GET_SIZE(HDRP(ptr)));
             mem_sbrk(diff);
             PUT(HDRP(ptr), PACK(newsize, 0));
@@ -561,22 +553,20 @@ void *mm_realloc(void *ptr, size_t size)
             return ptr;
         }
 
-        if (GET_ALLOC(HDRP(NEXT_BLKP(ptr)))==0) {
-            // printf("2\n");
-            size_t addnextblocksize = currentsize+GET_SIZE(HDRP(NEXT_BLKP(ptr)));
-            if (addnextblocksize >=newsize) {
+        if (GET_ALLOC(HDRP(NEXT_BLKP(ptr))) == 0)
+        {
+
+            size_t addnextblocksize = currentsize + GET_SIZE(HDRP(NEXT_BLKP(ptr)));
+            if (addnextblocksize >= newsize)
+            {
                 PUT(FTRP(ptr), PACK(0, 0));
                 delete_node(NEXT_BLKP(ptr));
                 PUT(HDRP(ptr), PACK(addnextblocksize, 0));
                 PUT(FTRP(ptr), PACK(addnextblocksize, 1));
                 PUT(HDRP(ptr), PACK(addnextblocksize, 1));
                 return ptr;
-
-
-
             }
         }
-        // printf("3\n");
         newptr = mm_malloc(size);
         if (newptr == NULL)
             return NULL;
