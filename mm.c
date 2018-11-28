@@ -66,7 +66,7 @@
 /*/ single word (4) or double word (8) alignment */
 #define ALIGNMENT 8
 
-#define LISTSIZE 120
+#define LISTSIZE 192
 
 /* rounds up to the nearest multiple of ALIGNMENT */
 #define ALIGN(size) (((size) + (ALIGNMENT - 1)) & ~0x7)
@@ -117,7 +117,7 @@ static struct NODE *find_struct_size(size_t siz)
 
     if (siz <= 5)
         return root1;
-    else if (siz >= 14)
+    else if (siz >= 20)
         return rootend;
     else
     {
@@ -135,7 +135,7 @@ static struct NODE *find_struct(void *ptr)
 
     if (ptrsize <= 5)
         return root1;
-    else if (ptrsize >= 14)
+    else if (ptrsize >= 20)
         return rootend;
     else
     {
@@ -338,12 +338,11 @@ int mm_init(void)
 
     struct NODE *initroot = root1;
     int i;
-    for (i = 0; i < 10; i++)
+    for (i = 0; i < 16; i++)
     {
 
         initroot->SIZE = 5 + i;
         initroot->NEXT = initroot + 1;
-        // initroot->FIRST = NULL;
         initroot++;
     }
     rootend = initroot - 1;
